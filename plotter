@@ -1,0 +1,187 @@
+#!/usr/bin/perl -w
+
+## http://paulbourke.net/dataformats/hpgl/
+
+my $EOL = chr(3); # ";\r\n";
+
+sub sendOut($)
+{
+	my $s = shift;
+	print "$s", $EOL;
+}
+
+sub sendEsc($)
+{
+	my $ch = shift;
+	sendOut(chr(27) . $ch);
+}
+
+my $cmds = {
+	'set-config' => {
+		'help' => 'Set Plotter Configuraiton', 'args' => undef, 'doit' => sub {
+			sendEsc('@'); 
+		}, 
+	}, 	
+	'output-ident' => {
+		'help' => 'Output Identification', 'args' => undef, 'doit' => sub {
+			sendEsc('A'); 
+		}, 
+	},
+	'output-buffer-space' => {
+		'help' => 'Output Buffer Space', 'args' => undef, 'doit' => sub {
+			sendEsc('B'); 
+		}, 
+	},
+	'output-extended-error' => {
+		'help' => 'Output Extended error', 'args' => undef, 'doit' => sub {
+			sendEsc('E'); 
+		}, 
+	},
+	'set-handshake-mode-1' => {
+		'help' => 'Set Handshake Mode 1', 'args' => undef, 'doit' => sub {
+			sendEsc('H'); 
+		}, 
+	},
+	'set-handshake-mode-2' => {
+		'help' => 'Set Handshake Mode 2', 'args' => undef, 'doit' => sub {
+			sendEsc('I'); 
+		}, 
+	},
+	'abort-device-control' => {
+		'help' => 'Abort Device Control', 'args' => undef, 'doit' => sub {
+			sendEsc('J'); 
+		}, 
+	},
+	'abort-graphics' => {
+		'help' => 'Abort Graphics', 'args' => undef, 'doit' => sub {
+			sendEsc('K'); 
+		}, 
+	},
+	'output-buffer-size-when-empty' => {
+		'help' => 'Output Buffer Size When Empty', 'args' => undef, 'doit' => sub {
+			sendEsc('L'); 
+		}, 
+	},
+	'set-output-mode' => {
+		'help' => 'Set Output Mode', 'args' => undef, 'doit' => sub {
+			sendEsc('M'); 
+		}, 
+	},
+	'set-extended-output-and-handshake-mode' => {
+		'help' => 'Set Extended Output and Handshake Mode', 'args' => undef, 'doit' => sub {
+			sendEsc('N'); 
+		}, 
+	},
+	'output-extended-status' => {
+		'help' => 'Output Extended Status', 'args' => undef, 'doit' => sub {
+			sendEsc('O'); 
+		}, 
+	},
+	'set-handshake-mode' => {
+		'help' => 'Set Handshake Mode', 'args' => undef, 'doit' => sub {
+			sendEsc('P'); 
+		}, 
+	},
+	'set-monitor-mode' => {
+		'help' => 'Set Monitor Mode', 'args' => undef, 'doit' => sub {
+			sendEsc('Q'); 
+		}, 
+	},
+	'sp8' => {
+		'help' => 'Set Pen 8', 'args' => undef, 'doit' => sub {
+			sendOut('SP8'); 
+		}, 
+	},
+	'sp1' => {
+		'help' => 'Set Pen 1', 'args' => undef, 'doit' => sub {
+			sendOut('SP1'); 
+		}, 
+	},
+	'sp0' => {
+		'help' => 'Set Pen 0', 'args' => undef, 'doit' => sub {
+			sendOut('SP0'); 
+		}, 
+	},
+	'reset' => {
+		'help' => 'Reset', 'args' => undef, 'doit' => sub { 
+			sendEsc('R'); 
+			sendEsc('A');
+			sendEsc('O');
+			sendOut('IN');
+			sendOut('SP0');
+			sendOut('PU');
+			sendOut('PA0,0');
+			sendOut('IN');
+			sendOut('SP1');
+			sleep(2);
+			sendOut('IN');
+			sendOut('SP0');
+			sendOut('IN');
+			sendEsc('R');
+			sendOut('IN');
+		}, 
+	},
+	'output-configurable-memory' => {
+		'help' => 'Output Configurable Memory', 'args' => undef, 'doit' => sub {
+			sendEsc('S'); 
+		}, 
+	},
+	'allocate-configurable-memory' => {
+		'help' => 'Allocate Configurable Memory', 'args' => undef, 'doit' => sub {
+			sendEsc('T'); 
+		}, 
+	},
+	'end-flush-mode' => {
+		'help' => 'End Flush Mode', 'args' => undef, 'doit' => sub {
+			sendEsc('U'); 
+		}, 
+	},
+	'plotter-on' => {
+		'help' => 'Plotter On', 'args' => undef, 'doit' => sub {
+			sendEsc('Y'); 
+		}, 
+	},
+	'plotter-on2' => {
+		'help' => 'Plotter On', 'args' => undef, 'doit' => sub {
+			sendEsc('('); 
+		}, 
+	},
+	'plotter-off' => {
+		'help' => 'Plotter Off', 'args' => undef, 'doit' => sub {
+			sendEsc('Z'); 
+		}, 
+	},
+	'plotter-off2' => {
+		'help' => 'Plotter Off', 'args' => undef, 'doit' => sub {
+			sendEsc(')'); 
+		}, 
+	}
+};
+
+sub usage()
+{
+	print "Plotter Control: plotter:3001", "\n";
+	foreach (sort keys %$cmds) {
+		my $cmd = $cmds->{$_};
+		my $val = $_ . '                          ';
+		printf "\t--%s%s\n", substr($val, 0, 30), $cmd->{'help'};
+	}
+	exit(-1);
+}
+
+my (@todo);
+
+foreach (@ARGV) {
+	if ($_ !~ m/\-\-(.*)$/ || ! defined ($cmds->{$1})) {
+		print "Unknown command $_ ($1)", "\n";
+		usage();
+	}
+	my $cmd = $cmds->{$1};
+	push (@todo, $cmd->{'doit'});
+}
+
+
+foreach (@todo) {
+	$_->();
+}
+

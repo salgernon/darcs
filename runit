@@ -1,0 +1,9 @@
+#!/bin/bash 
+
+killall hpglview_i386
+
+sleep 1
+
+(perl darcs.pl | tee /tmp/darcs.hpgl) || exit 1
+
+/Applications/HpglView/HpglView.app/Contents/Resources/app/hpglview_i386 /tmp/darcs.hpgl &
